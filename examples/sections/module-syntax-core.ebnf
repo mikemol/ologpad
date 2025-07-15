@@ -1,0 +1,28 @@
+MODULE "module-syntax-core.ebnf" {
+  ? This module contains the complete, evolved, self-hosting grammar for the Veritas Core report language. ?;
+  syntax-definition = { principle-directive }, { forward-declaration }, { definition-item }, { module-block } . ;
+  principle-directive = 'PRINCIPLE', terminal-string, ';' . ;
+  forward-declaration = 'FORWARD', terminal-string, ';' . ;
+  module-block = 'MODULE', terminal-string, '{', { definition-item }, '}', ';' . ;
+  import-statement = 'IMPORT', terminal-string, ';' . ; ? For referencing external, pre-validated grammar artifacts. ?
+  definition-item = rule | conditional-block | deprecation-directive | import-statement . ;
+  rule = meta-identifier, "\=", expression, [ annotation ], "\;" . ;
+  annotation = '@', meta-identifier, '(', terminal-string, ')', ';' . ;
+  conditional-block = 'IFDEF', terminal-string, 'THEN', '{', { definition-item }, '}', 'ENDIF', ';' . ;
+  deprecation-directive = 'DEPRECATE', meta-identifier, 'WITH', terminal-string, ';' . ;
+  expression = term, { "\|", term } . ;
+  term = factor, { factor } . ;
+  factor = meta-identifier | terminal-string | "\[", expression, "\]" | "\{", expression, "\}" | "\(", expression, "\)" | "\?", arbitrary-text, "\?" . ;
+  meta-identifier = letter, { letter | digit | "-" } . ;
+  terminal-string = single-quote-symbol, { character }, single-quote-symbol | double-quote-symbol, { character }, double-quote-symbol . ;
+  single-quote-symbol = ? ASCII character 39 ? . ;
+  double-quote-symbol = ? ASCII character 34 ? . ;
+  character = ? any Unicode character except control characters or the quote symbol enclosing it ? . ;
+  letter = ? 'A' through 'Z', 'a' through 'z' ? . ;
+  digit = ? '0' through '9' ? . ;
+  arbitrary-text = ? any sequence of characters not containing '?' and not leading to syntax ambiguity ? . ;
+
+  ? --- Report Content Definitions --- ?;
+  Report-Title = ? REPORT: A Unified Categorical Formalism for Self-Proving Systems: EBNF, CMFI, CHL, and E_Evolve. ?;
+  Section-1-Prolegomenon = ? SECTION 1: PROLEGOMENON: THE EVOLVED CATEGORY OF SYNTAX (C_Syntax). We commence by re-establishing the language of this report: an evolved version of Extended Backus-Naur Form (EBNF). The metalanguage previously presented has undergone several formal, self-verified transformations. It now possesses enhanced expressive power, including directives for modular importation, machine-readable rule annotation, conditional grammar compilation, and formal lifecycle management through deprecation. This evolved syntax is not merely a feature set; it represents a richer categorical structure, C_Syntax, where the objects include not only terminal and non-terminal symbols but also directives that act upon the grammar itself. The morphisms of this category have been expanded beyond simple composition to include transformations that alter the very fabric of the grammar being defined. We begin by presenting the complete, self-hosting definition of this evolved EBNF. This evolved SYNTAX_DEFINITION is the new foundation of our system. The introduction of import-statement, conditional-block, and deprecation-directive elevates the grammar from a static description to a dynamic artifact, assembled and configured according to meta-level instructions. From a categorical perspective, our category C_Syntax is now significantly more sophisticated. Its construction is parameterized by an "environment" of configuration flags and a "context" of imported definitions. The act of parsing and validating a grammar is now a functor that maps not just a string to a parse tree, but a set of files and configuration flags to a resolved, logically coherent grammatical structure. This richer foundation is essential for the self-proving and self-evolving capabilities that will be expounded upon in the subsequent sections. ?; @section("1")
+};
