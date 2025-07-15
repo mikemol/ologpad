@@ -1,0 +1,414 @@
+syntax-definition = { principle-directive }, { definition-item }, { definition-item }, pushout-example , earley-parser-integration, cmfi-integration, curry-howard-integration, proof-section;
+  principle-directive = 'PRINCIPLE', terminal-string, ';' ;
+
+  import-statement = 'IMPORT', terminal-string, ';' ;
+  // For referencing external, pre-validated grammar artifacts. Supports modularity and reuse.
+
+  definition-item = rule | conditional-block | deprecation-directive | import-statement | pushout-definition ;
+  rule = meta-identifier, '=', annotated-expression, ';' ; // Changed expression to annotated-expression
+  annotated-expression = expression, [ annotation ];
+  annotation = '@', meta-identifier, '(', terminal-string, ')', ';' ;
+  conditional-block = 'IFDEF', terminal-string, 'THEN', '{', { definition-item }, '}', 'ENDIF', ';' ;
+  deprecation-directive = 'DEPRECATE', meta-identifier, 'WITH', terminal-string, ';' ;
+  expression = term, { '|', term } ;
+  term = factor, { '+', factor } ; // Changed term definition. Introducing a separator + .  This is for better clarity.
+  factor = meta-identifier | terminal-string | '[', expression, ']' | '{', expression, '}' | '(', expression, ')' | optional-text ; // added optional text
+  optional-text = '?', { character | escaped-character }, '?' ; // Replaced the ambiguous `? arbitrary-text ?`
+
+  meta-identifier = letter, { letter | digit | '-' }, [ Identifier-Type-Annotation ]; // Added Type Annotations for Identifiers.
+  terminal-string = single-quote-symbol, { character }, single-quote-symbol | double-quote-symbol, { character }, double-quote-symbol ;
+  single-quote-symbol = "'" ; // ASCII character 39
+  double-quote-symbol = '"' ; // ASCII character 34
+  character = ? any Unicode character except control characters or the quote symbol enclosing it ? ;
+  letter = ? 'A' through 'Z', 'a' through 'z' ? ;
+  digit = ? '0' through '9' ? ;
+  // Refined.  See keyword example.
+  arbitrary-text =  { character | escaped-character } ; // Allows for escaped characters.
+  escaped-character = '\', ( single-quote-symbol | double-quote-symbol | '\' | 'n' | 'r' | 't' ); // Simple escape sequence (e.g., backslash, newline, carriage return, tab). Specifically defined and limited. Includes escaping for quotes
+  whitespace = { " " | "\t" | "\r" | "\n" } ; // Explicit whitespace definition.
+
+  // --- Meta-level Categorical Concepts ---
+  // This module contains the formal EBNF definitions for the core categorical concepts used in the metaprogram.
+  // Added "cmfi-definitions.ebnf" here
+
+  // --- Curry-Howard-Lambek Axioms ---
+
+  // Implication Introduction (Function Abstraction)
+  Implication-Intro =  "(" , "λ", Identifier, ":", Type, ".", Term , ")" ;
+
+  // Implication Elimination (Function Application)
+  Implication-Elim = Term, Term ;
+
+  // Conjunction Introduction (Pairing)
+  Conjunction-Intro = "(" , Term, ",", Term, ")" ;
+
+  // Conjunction Elimination (Projection) - Left
+  Conjunction-Elim-L = "proj1", Term ;
+
+  // Conjunction Elimination (Projection) - Right
+  Conjunction-Elim-R = "proj2", Term ;
+
+  // Product Type (Conjunction Type)
+  Product-Type = Type, "*" , Type;
+
+  // Unit Type and introduction
+  Unit-Type = "Unit";
+  Unit-Intro = "()" ;
+
+  // --- Curry-Howard-Martin-Löf Axioms (Extending Curry-Howard-Lambek) ---
+
+  // Disjunction Introduction (Injection) - Left
+  Disjunction-Intro-L = "inl", Term ;
+
+  // Disjunction Introduction (Injection) - Right
+  Disjunction-Intro-R = "inr", Term ;
+
+  // Disjunction Elimination (Case Analysis) - Requires extra typing to avoid error
+  Disjunction-Elim = "case", Term, "of", Term , "=>", Term, "|", Term, "=>", Term;
+
+  // Sum Type (Disjunction Type)
+  Sum-Type = Type, "+", Type;
+
+  // Void Type (Falsehood/Empty Type) and Introduction
+  Void-Type = "Void";
+  Void-Intro = ;  // Empty: There is no term of type Void
+
+  // Universe of Types (for Dependent Types)
+  Universe-Type = "Type" ;
+
+  // Dependent Product (Pi-Type) Introduction - dependent function
+  Pi-Intro = "(" , "λ", Identifier, ":", Type, ".", Term , ")" ;
+  Pi-Type = Identifier, ":", Type, "->", Type;
+
+  // Dependent Sum (Sigma-Type) - Dependent Product
+  Sigma-Intro = "(" , Term, ",", Term, ")" ; //Pair
+  Sigma-Type = Identifier, ":", Type, "x", Type;
+
+  //Equality (Equality Type) and introduction
+  Equality-Type = Term, "=", Term;
+  Equality-Intro = "refl"; // Reflexivity
+
+  // --- Type Safety Annotations ----
+  // Type annotations for meta-identifiers. This is a *minimal* example.
+  // EXTENDED to include more type constructs as described in the feedback
+  Identifier-Type-Annotation = '@type', '(', Type, ')', ';' ; // Now takes a Type
+
+  //Axioms and types
+  Type = Product-Type | Sum-Type | Pi-Type | Sigma-Type | Unit-Type | Void-Type | Universe-Type | Type-Name ; //Added Type-Name
+  Type-Name = Identifier;  //Simple type name, resolves to basic type or defined type.
+  Term = Implication-Intro | Implication-Elim | Conjunction-Intro | Conjunction-Elim-L | Conjunction-Elim-R | Disjunction-Intro-L | Disjunction-Intro-R | Disjunction-Elim | Pi-Intro | Sigma-Intro | Equality-Intro | meta-identifier; //Allow meta-identifiers as terms
+  CHL-Proof-Formulation = Proof-Begin, Step-1, Step-2, Step-3, Step-4, Proof-End;
+  Proof-Begin = ? PROOF_BEGIN: Curry-Howard-Lambek guarantees the self-proving nature of the evolved, configurable system; Let the category of source grammar artifacts (files, configurations) be denoted C_Source. Let the resolution functor be F_resolve: C_Source -> C_ConcreteGrammar. The CMFI, as defined in Section 2, provides the logical framework for this resolution. ?;
+  Step-1 = ? STEP_1_PROPOSITIONAL_INTERPRETATION: By the CHL correspondence, a proposition is a type. In our evolved system, a proposition can be dependent on configuration. For example: "The grammar is valid given that the 'debug_mode' flag is active." This is a dependent type. The EBNF definitions for conditional-block and import-statement are syntactic sugar for constructing such dependently-typed propositions about the grammar's structure. ?;
+  Step-2 = ? STEP_2_PROGRAMMATIC_INTERPRETATION: A "program" is now a complete specification object from C_Source—that is, a set of source files and a specific configuration. The "proof" is the successful execution of the resolution functor F_resolve on this object. If the resolution completes without error, yielding a valid object in C_ConcreteGrammar, then this computational process itself serves as a constructive proof of the proposition that the specified configuration is valid. ?;
+  Step-3 = ? STEP_3_CATEGORICAL_STRUCTURE_AND_VERIFICATION: The verification process, modeled by monadic and functorial structures from the CMFI, is the proof-checker. The Validation_Functor is the mechanism that checks for namespace collisions from IMPORT directives and validates the internal consistency of IFDEF blocks. Its successful execution on a configuration is the mechanical normalization of the proof term, confirming the system's integrity under those specific conditions. The issuance of DEPRECATE warnings is a side-effect captured by the monad, providing proof-relevant information without invalidating the core proposition of structural soundness. The Validation_Functor can produce different Monadic states (Success/Failure) and can incorporate different aspects of the program. ?;
+  Step-4 = ? STEP_4_RECURSIVE_SELF_PROVABILITY: The self-referential loop is now stronger. The EBNF grammar defines its own advanced features (IMPORT, IFDEF, etc.). The CMFI, also defined in this EBNF, provides the logic to verify systems using these features. Therefore, the system's own source code, which is necessarily modular and configurable, can be formally verified by the very principles it codifies. The system can prove that its own evolution engine, E_Evolve, is sound across its different possible configurations, thus achieving a more robust and dynamic form of self-provability. ?;
+  Proof-End = ? PROOF_END. ?;
+
+  // The categorical pushout of a model and a metamodel, represented formally.
+
+  // The core production rule defining the Pushout operation.  It leverages the
+  // previously defined structures (Model, Metamodel, Pushout-Result).  This rule
+  // encapsulates the entire process.
+  pushout-definition = "Pushout", "(", Model, ",", Metamodel, ")", "=>", Pushout-Result, ";" ;
+
+  // --- Model Definition ---
+  // A model represents a specific instance, e.g., a specific database schema, a
+  // particular software design, or a specific data structure.
+
+  Model = "Model", "{", "objects", ":", Object-List, ",", "morphisms", ":", Morphism-List, "}", ";" ;
+
+  Object-List = { Identifier, "," } ;  // A list of concrete object identifiers.
+  Morphism-List = { Morphism-Definition, "," } ; // A list of concrete morphism definitions.
+
+  Morphism-Definition = Identifier, ":", Identifier, "->", Identifier ; // e.g.,  "addEdge: Node1 -> Node2"
+  Identifier = letter, { letter | digit } ; // Simple identifiers.
+
+  // --- Metamodel Definition ---
+  // The metamodel defines the structure or the *type* of models that are valid.
+  // It's an abstract definition of the domain.
+
+  Metamodel = "Metamodel", "{", "concepts", ":", Concept-List, ",", "relationships", ":", Relationship-List, "}", ";" ;
+
+  Concept-List = { Concept-Definition, "," } ;  // A list of abstract concept definitions.
+  Relationship-List = { Relationship-Definition, "," } ; // A list of abstract relationship definitions.
+
+  Concept-Definition = Identifier ; // e.g., "Node", "Edge"
+  Relationship-Definition = Identifier, ":", Identifier, "->", Identifier ;  // e.g., "hasEdge: Node -> Edge"
+
+
+  // --- Pushout Result Definition ---
+  // This is the result of applying the Pushout construction.
+  // It unifies and reconciles the Model and the Metamodel.
+
+  Pushout-Result = "Pushout-Result", "{", "objects", ":", Object-List, ",", "morphisms", ":", Morphism-List, ",", "concept-mapping", ":", Concept-Mapping, "}", ";" ;
+
+  Concept-Mapping = { Concept-Assignment, "," } ; // The mapping from Metamodel concepts to Model elements.
+
+  Concept-Assignment = Identifier, "maps-to", Identifier ; // e.g., "Node maps-to  node1"
+
+  // --- Pushout Example Integration  ---
+  // Model specific EBNF grammar fragment
+
+  pushout-example = pushout-ebnf;
+
+  // Model for EBNF  Grammar Structure:
+  // Represents the concrete elements and their relationships.
+  model-fragment = "Model", "{",
+      "objects", ":", "statement", ",", "assignment", ",", "identifier", ",", "equals", ",", "expression", ",", "semicolon", ",", "terminal_string",
+      ",", "single-quote-symbol", ",", "character", ",", "double-quote-symbol",
+      ",", "letter", ",", "digit",
+      ",", "arbitrary-text",
+      ",", "rule", ",", "expression_item",
+      ",", "term", ",", "factor", // Added to match the relationships.
+      ",", "annotation_item", // Added to match the relationships.
+      "morphisms", ":",
+        "defines", ":", "statement", "->", "assignment", ",",
+        "has_lhs", ":", "assignment", "->", "identifier", ",",
+        "has_rhs", ":", "assignment", "->", "expression", ",",
+        "ends_with", ":", "expression", "->", "semicolon", ",",
+        "contains_string", ":", "terminal_string", "->", "terminal_string", ",",
+        "identifies", ":", "identifier", "->", "identifier", ",", // Added to match the relationships.
+        "has_annotation", ":", "rule", "->", "annotation_item", // added to model annotation relationships
+        "is_expression_item_of", ":", "expression_item", "->", "expression", //added to model the item to the expression relationship
+        "is_term_of", ":", "expression_item", "->", "term",
+        "is_factor_of", ":", "term", "->", "factor" //added to model the factor relationship
+  , "}", ";" ;
+
+
+  // Metamodel for EBNF (Abstract concepts and relations)
+  metamodel-ebnf = "Metamodel", "{",
+      "concepts", ":", "Rule", ",", "LHS", ",", "RHS", ",", "Expression", ",", "Term", ",", "Factor", ",", "Terminal", ",", "Identifier", ",", "TerminalString", ",", "AssignmentSymbol", ",", "Separator",
+      ",", "Annotation", ",", "ExpressionItem", ",", "Character", ",", "SingleQuoteSymbol", ",", "DoubleQuoteSymbol", ",", "Letter", ",", "Digit", ",", "ArbitraryText",
+      "relationships", ":",
+        "has_lhs", ":", "Rule", "->", "LHS", ",",
+        "has_rhs", ":", "Rule", "->", "RHS", ",",
+        "is_composed_of", ":", "Rule", "->", "Expression", ",",
+        "is_composed_of_item", ":", "Expression", "->", "ExpressionItem",
+        "is_composed_of_term", ":", "ExpressionItem", "->", "Term",
+        "is_composed_of_factor", ":", "Term", "->", "Factor",
+        "is_terminal", ":", "Terminal", "->", "TerminalString", ",",
+        "is_identified_by", ":", "LHS", "->", "Identifier", ",",
+        "is_separated_by", ":", "Expression", "->", "Separator", ",",
+        "is_assigned_by", ":", "Rule", "->", "AssignmentSymbol", ",",
+        "is_terminated_by", ":", "Expression", "->", "Separator",
+        "has_annotation", ":", "Rule", "->", "Annotation", //Added for Annotation.
+        "contains_character", ":", "TerminalString", "->", "Character",
+        "is_quoted_by_single", ":", "TerminalString", "->", "SingleQuoteSymbol",
+        "is_quoted_by_double", ":", "TerminalString", "->", "DoubleQuoteSymbol",
+        "is_letter", ":", "Identifier", "->", "Letter",
+        "is_digit", ":", "Identifier", "->", "Digit",
+        "is_arbitrary_text", ":", "Factor", "->", "ArbitraryText"
+  , "}", ";" ;
+
+  // Pushout result example
+  pushout-result-example = "Pushout-Result", "{",
+    "objects", ":",
+        "statement", ",", "assignment", ",", "identifier", ",", "equals", ",", "expression", ",", "semicolon", ",", "terminal_string", ",", "single-quote-symbol", ",", "character", ",", "double-quote-symbol", ",", "letter", ",", "digit", ",", "arbitrary-text", ",", "rule", ",", "expression_item", ",", "term", ",", "factor", ",", "annotation_item", // From Model
+        // Metamodel concepts are "merged" in.
+        ",", "Rule", ",", "LHS", ",", "RHS", ",", "Expression", ",", "Term", ",", "Factor", ",", "Terminal", ",", "Identifier", ",", "TerminalString", ",", "AssignmentSymbol", ",", "Separator", ",", "Annotation", ",", "ExpressionItem", ",", "Character", ",", "SingleQuoteSymbol", ",", "DoubleQuoteSymbol", ",", "Letter", ",", "Digit", ",", "ArbitraryText", // From Metamodel
+    ",",
+    "morphisms", ":",
+        // Model morphisms, now existing in the Pushout.
+        "defines", ":", "statement", "->", "assignment", ",",
+        "has_lhs", ":", "assignment", "->", "identifier", ",",
+        "has_rhs", ":", "assignment", "->", "expression", ",",
+        "ends_with", ":", "expression", "->", "semicolon", ",",
+        "contains_string", ":", "terminal_string", "->", "terminal_string", ",",
+        "identifies", ":", "identifier", "->", "identifier", ",",
+        "has_annotation", ":", "rule", "->", "annotation_item",
+        "is_expression_item_of", ":", "expression_item", "->", "expression",
+        "is_term_of", ":", "expression_item", "->", "term",
+        "is_factor_of", ":", "term", "->", "factor",
+
+        // Metamodel relationships, now also existing in the Pushout
+        "has_lhs", ":", "statement", "->", "LHS", ",", // Using 'statement' (Model) and LHS (Metamodel), since model statement maps to metamodel Rule (concept mapping)
+        "has_rhs", ":", "statement", "->", "RHS", ",", // Rule in Metamodel
+        "is_composed_of", ":", "statement", "->", "Expression", ",", //Rule in Metamodel
+        "is_composed_of_item", ":", "expression", "->", "ExpressionItem", // Rule in Metamodel
+        "is_composed_of_term", ":", "expression_item", "->", "Term",
+        "is_composed_of_factor", ":", "term", "->", "Factor",
+        "is_terminal", ":", "terminal_string", "->", "TerminalString", ",",
+        "is_identified_by", ":", "identifier", "->", "Identifier", ",",
+        "is_separated_by", ":", "expression", "->", "semicolon", ",",
+        "is_assigned_by", ":", "statement", "->", "equals", ",", //Rule in Metamodel.
+        "is_terminated_by", ":", "expression", "->", "semicolon",
+        "has_annotation", ":", "statement", "->", "Annotation",
+        "contains_character", ":", "terminal_string", "->", "Character",
+        "is_quoted_by_single", ":", "terminal_string", "->", "SingleQuoteSymbol",
+        "is_quoted_by_double", ":", "terminal_string", "->", "DoubleQuoteSymbol",
+        "is_letter", ":", "identifier", "->", "Letter",
+        "is_digit", ":", "identifier", "->", "Digit",
+        "is_arbitrary_text", ":", "factor", "->", "ArbitraryText",
+    ",",
+    "concept-mapping", ":",
+        "statement", "maps-to", "Rule", ",",
+        "assignment", "maps-to", "Rule", ",",
+        "identifier", "maps-to", "Identifier", ",",
+        "equals", "maps-to", "AssignmentSymbol", ",",
+        "expression", "maps-to", "Expression", ",",
+        "semicolon", "maps-to", "Separator", ",",
+        "terminal_string", "maps-to", "TerminalString", ",",
+        "single-quote-symbol", "maps-to", "SingleQuoteSymbol", ",",
+        "character", "maps-to", "Character", ",",
+        "double-quote-symbol", "maps-to", "DoubleQuoteSymbol", ",",
+        "letter", "maps-to", "Letter", ",",
+        "digit", "maps-to", "Digit", ",",
+        "arbitrary-text", "maps-to", "ArbitraryText", ",",
+        "rule", "maps-to", "Rule", ",",
+        "expression_item", "maps-to", "ExpressionItem", ",",
+        "term", "maps-to", "Term", ",",
+        "factor", "maps-to", "Factor", ",",
+        "annotation_item", "maps-to", "Annotation"
+  , "}", ";" ;
+
+pushout-ebnf = "Pushout", "(", model-fragment, ",", metamodel-ebnf, ")", "=>", pushout-result-example, ";" ;
+MODULE "module-earley-spec.ebnf" {
+  ? This module provides the complete, evolved specification for the Earley Parser artifact. ?;
+  IMPORT "cmfi-definitions.ebnf"; // Import the Categorical concepts.
+  DEPRECATE Naive-Recursive-Descent-Parser WITH "Superseded by the more general EarleyParser declaration as of v2.0.";
+  Earley-Parser-Spec = EarleyParser-Rule, { Earley-Component-Def };
+  EarleyParser-Rule =
+  "EarleyParser", "=", "earley-parser-name", "{",
+  "GRAMMAR_SPECIFICATION", ":", "grammar-category-spec", ",",
+  "INPUT_STREAM", ":", "input-stream-type", ",",
+  "PARSE_CHART_TYPE", ":", "parse-chart-category-object", ",",
+  "CORE_OPERATIONS_MONAD", ":", "earley-monad-definition", ",",
+  "FIXED_POINT_COMPUTATION", ":", "earley-fixed-point-trace", ",",
+  IFDEF "enable_parse_tracing" THEN
+  {
+  rule = "TRACE_OUTPUT_TYPE", ":", "trace-log-spec", ";" ;
+  }
+  ENDIF
+  "}", ";" ; @version("2.1") @status("stable")
+  Earley-Component-Def = earley-parser-name
+  | grammar-category-spec
+  | input-stream-type
+  | parse-chart-category-object
+  | earley-monad-definition
+  | earley-fixed-point-trace
+  | trace-log-spec ;
+  earley-parser-name = meta-identifier . ;
+  grammar-category-spec = Category, "{" ? ... ? "}" ;
+  input-stream-type = Category, "{" ? ... ? "}" ;
+  parse-chart-category-object = ? "Object", "{", "name", ":", "ParseChartSet", "}" ? ;
+  earley-monad-definition = Monad, "{" "UNDERLYING_FUNCTOR", ":", "EarleyStateFunctor", "}" ? ... ? "}" ; @author("J. Earley, formal-spec by Veritas Core")
+  earley-fixed-point-trace = TraceOperator, "{" ? "trace-operator-definition", "? Tr(F) = least_fixed_point(F) ?", "}" ? ... ? "}" ;
+  IFDEF "enable_parse_tracing" THEN
+  {
+  trace-log-spec = "Category", "{",
+  "OBJECTS", "{", "TraceEventList", "}", ",",
+  "MORPHISMS", "{", "AppendEvent", ":", "TraceEventList", "->", "TraceEventList", "}",
+  "}" ;
+  }
+  ENDIF;
+};
+MODULE "module-cmfi-definitions.ebnf" {
+  ? This module contains the formal EBNF definitions for the core categorical concepts used in the metaprogram. ?;
+  Category = "category-name", "{", "OBJECTS", "{", "object-names", "}", ",", "MORPHISMS", "{", "morphism-definitions", "}", ",", "COMPOSITION_RULE", ",", "IDENTITY_MORPHISM_RULE", ",", "ASSOCIATIVITY_AXIOM",  "}" ;
+  // Additional support for axioms could be added here to encode richer categorical structures.
+  // For now this can stay as is.
+  // --- Categorical Model-Functorial Integration (CMFI) ---
+  // This module defines the core categorical constructs used for grammar transformation and validation.
+  // These definitions provide a formal basis for operations like dependency resolution, feature flag application,
+  // and validation with context (e.g., collecting errors or warnings).
+  cmfi-integration = MODULE, "cmfi-definitions.ebnf", "{",
+      { cmfi-definition-item },
+      Validation-Monad-Example
+    , "}", ";" ;
+
+  cmfi-definition-item = Category-Def | Functor-Def | Monad-Def | Natural-Transformation-Def ;
+
+  // A Category consists of objects and the morphisms between them.
+  // In our context, a C_Source (source grammar) can be modeled as a category.
+  Category-Def = "Category", meta-identifier, "{",
+      "Objects", ":", Object-Collection, ",",
+      "Morphisms", ":", Morphism-Collection,
+    "}", ";" ;
+
+  Object-Collection = "[", { meta-identifier, "," }, "]" ; // e.g., [ rule, meta-identifier, expression ]
+  Morphism-Collection = "[", { Morphism-Signature, "," }, "]" ; // e.g., [ 'has_lhs: rule -> meta-identifier' ]
+  Morphism-Signature = terminal-string, ":", meta-identifier, "->", meta-identifier ;
+
+  // A Functor maps one category to another, preserving its structure.
+  // F_resolve: C_Source -> C_ConcreteGrammar is a functor.
+  Functor-Def = "Functor", meta-identifier, ":", meta-identifier, "->", meta-identifier, "{",
+      "Object-Map", ":", Functor-Object-Mapping, ",",
+      "Morphism-Map", ":", Functor-Morphism-Mapping,
+    "}", ";" @description("Maps a source category to a target category, preserving composition and identity.") ;
+
+  Functor-Object-Mapping = "[", { meta-identifier, "=>", meta-identifier, "," }, "]" ; // F(object_A) = object_B
+  Functor-Morphism-Mapping = "[", { terminal-string, "=>", terminal-string, "," }, "]" ; // F(morphism_f) = morphism_g
+
+  // A Monad provides a structure for sequencing computations while managing a context.
+  // This is critical for validation, where the context can be a list of errors or warnings.
+  Monad-Def = "Monad", meta-identifier, "on", meta-identifier, "{", // e.g., "Monad ValidationMonad on C_ConcreteGrammar"
+      "Return", ":", Monad-Return-Op, ",",
+      "Bind", ":", Monad-Bind-Op,
+      [ "Error-Handling", ":", Monad-Error-Handling, ""]
+    "}", ";" @description("Encapsulates computations within a context (e.g., state, exceptions, I/O).") ;
+
+  Monad-Return-Op = "return", ":", "T", "->", "M(T)" ; // Wraps a pure value into the monadic context.
+  Monad-Bind-Op = "bind", ":", "(", "M(T)", ",", "(", "T", "->", "M(U)", ")", ")", "->", "M(U)" ; // Sequences monadic functions.
+  Monad-Error-Handling = "handle-error", ":",  "(", "M(T)", ",",  "ErrorType", "->",  "M(T)", ")"  ; // allows for error handling
+  // ErrorType describes the type of emitted errors
+  ErrorType = meta-identifier ;
+
+  // A Natural Transformation provides a mapping between two functors.
+  // This could model grammar refactoring or optimization.
+  Natural-Transformation-Def = "Natural-Transformation", meta-identifier, ":", meta-identifier, "=>", meta-identifier, ";"
+    @description("A mapping between two Functors F, G : C -> D.") ;
+
+  // Concrete example of a Validation Monad definition using the above rules.
+  Validation-Monad-Example = "Monad", "ValidationMonad", "on", "C_ConcreteGrammar", "{",
+      "Return", ":", "return: ValidatedGrammar -> ValidationMonad(ValidatedGrammar)", ",",
+      "Bind", ":", "bind: (ValidationMonad(A), (A -> ValidationMonad(B))) -> ValidationMonad(B)",
+      "Error-Handling", ":", "handle-error: (ValidationMonad(T),", "ErrorType", "->", "ValidationMonad(T))",
+    "}", ";" @description("Manages success, failure, and warning states during grammar validation.") ;
+
+  ErrorType = "NamespaceCollision" | "InvalidTypeAnnotation" | "DeprecationWarning" | "MissingDependency" | "SyntaxError"; // Define the Error Types.  Add more descriptive context later.
+  // --- Curry-Howard Integration ---
+  // This module formalizes the "Propositions as Types, Proofs as Programs" paradigm
+  // within the grammar definition itself. It defines the structure of logical judgments
+  // that underpin the self-proving nature of the system.
+
+  curry-howard-integration = MODULE, "curry-howard-logic.ebnf", "{",
+      { chi-definition-item }
+    , "}", ";" ;
+  chi-definition-item = Judgment-Rule | Sequent-Rule | Proof-Term-Rule | Context-Def ;
+
+  // A Judgment asserts that a term (a program/proof) has a certain type (a proposition) within a given context.
+  Judgment-Rule = "Judgment", ":", Context-Ref, "|-", Term, ":", Type, ";"
+    @description("The core assertion of type theory: Term 'p' is a proof of proposition 'T' in context 'G'.") ;
+
+  // A Sequent represents an entailment from a set of assumptions to a conclusion.
+  Sequent-Rule = "Sequent", ":", Context-Ref, "|-", Context-Ref, ";"
+    @description("Asserts that context Gamma entails context Delta.") ;
+
+  // Defines the structure of a proof term, which is built using the axioms.
+  Proof-Term-Rule = "ProofTerm", meta-identifier, "=", axiom | application | abstraction, ";" ;
+    axiom = "axiom", meta-identifier, "(", { term, "," }, ")" ; // E.g., "axiom Refl (t)"
+    application = "app", "(", meta-identifier, ",", meta-identifier, ")" ; // (app proof_1 proof_2) - function application.
+    abstraction = "lambda", "(", meta-identifier, ":", type, ".", meta-identifier, ")"  ; // λx:Type. Proof
+  //
+  // Example:  Proving A -> A (Identity function)
+  //  ProofTerm identity_proof = lambda (x: A . x);
+  //
+  //
+  // ProofTerm application_example = app(identity_proof, term_a);
+
+  // Defines a context (Γ, Δ) which is a set of typed variable assumptions.
+  Context-Def = "Context", meta-identifier, "=", "[", { Context-Entry, "," }, "]", ";" ;
+  Context-Entry = meta-identifier, ":", Type ;
+  Context-Ref = meta-identifier ; // A reference to a defined Context.
+}
+MODULE "proofs.ebnf" {
+  ? This section contains proofs and examples related to the curry-howard isomorphism  ? ;
+
+   IMPORT "curry-howard-logic.ebnf";
+   // --- Example Proofs ---
+   // Proof of A -> A (Identity)
+   Proof-A-to-A =
+     "ProofTerm", "identity_proof", "=", "lambda", "(", "x", ":", "A", ".", "x", ")", ";"; // Lambda abstraction
+     @description ("Proof of A -> A, the identity function");
+}
